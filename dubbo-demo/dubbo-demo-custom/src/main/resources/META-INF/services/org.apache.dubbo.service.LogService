@@ -1,0 +1,2 @@
+org.apache.dubbo.service.Slf4jLogService
+org.apache.dubbo.service.LogbackLogService

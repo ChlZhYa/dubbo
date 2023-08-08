@@ -382,16 +382,16 @@ public class HashedWheelTimer implements Timer {
         if (unit == null) {
             throw new NullPointerException("unit");
         }
-
+        // 增加挂起的待执行任务数量
         long pendingTimeoutsCount = pendingTimeouts.incrementAndGet();
-
+        // 挂起数量不能大于配置值
         if (maxPendingTimeouts > 0 && pendingTimeoutsCount > maxPendingTimeouts) {
             pendingTimeouts.decrementAndGet();
             throw new RejectedExecutionException("Number of pending timeouts ("
                     + pendingTimeoutsCount + ") is greater than or equal to maximum allowed pending "
                     + "timeouts (" + maxPendingTimeouts + ")");
         }
-
+        // 启动当前时间轮
         start();
 
         // Add the timeout to the timeout queue which will be processed on the next tick.
