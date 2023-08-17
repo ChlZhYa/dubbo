@@ -100,13 +100,16 @@ public abstract class FailbackRegistry extends AbstractRegistry {
 
     private void addFailedRegistered(URL url) {
         FailedRegisteredTask oldOne = failedRegistered.get(url);
+        // 如果当前 URL 已经存在重试任务，则不需要再创建
         if (oldOne != null) {
             return;
         }
+        // 构建重试任务
         FailedRegisteredTask newTask = new FailedRegisteredTask(url, this);
         oldOne = failedRegistered.putIfAbsent(url, newTask);
         if (oldOne == null) {
             // never has a retry task. then start a new task for retry.
+            // 如果是全新的重试任务，直接提交到时间轮中，等待 retryPeriod 之后执行
             retryTimer.newTimeout(newTask, retryPeriod, TimeUnit.MILLISECONDS);
         }
     }
@@ -232,16 +235,19 @@ public abstract class FailbackRegistry extends AbstractRegistry {
             logger.info("URL " + url + " will not be registered to Registry. Registry " + url + " does not accept service of this protocol type.");
             return;
         }
+        // 将 URL 写入 registered 集合中，并从注册失败的集合中删除
         super.register(url);
         removeFailedRegistered(url);
         removeFailedUnregistered(url);
         try {
             // Sending a registration request to the server side
+            // 模板方法，由子类实现具体的注册逻辑
             doRegister(url);
         } catch (Exception e) {
             Throwable t = e;
 
             // If the startup detection is opened, the Exception is thrown directly.
+            // 如果启动失败检测打开了，注册异常会直接抛出
             boolean check = getUrl().getParameter(Constants.CHECK_KEY, true)
                     && url.getParameter(Constants.CHECK_KEY, true)
                     && !CONSUMER_PROTOCOL.equals(url.getProtocol());
@@ -256,6 +262,7 @@ public abstract class FailbackRegistry extends AbstractRegistry {
             }
 
             // Record a failed registration request to a failed list, retry regularly
+            // 创建重试任务，添加到 failedRegistered 集合中
             addFailedRegistered(url);
         }
     }
